@@ -1,6 +1,5 @@
-/* eslint-disable */
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Board } from "../../data/board";
 import { onDragEnd } from "../../helpers/onDragEnd";
 import { AddOutline } from "react-ionicons";
@@ -12,27 +11,38 @@ const Home = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedColumn, setSelectedColumn] = useState("");
 
+  // Open modal when user clicks to add task
   const openModal = (columnId) => {
     setSelectedColumn(columnId);
     setModalOpen(true);
   };
 
+  // Close modal
   const closeModal = () => {
     setModalOpen(false);
   };
 
+  // Handle adding a new task
   const handleAddTask = (taskData) => {
     const newBoard = { ...columns };
-    newBoard[selectedColumn].items.push(taskData);
-    setColumns(newBoard); // Update the state with new columns
+    if (selectedColumn) {
+      newBoard[selectedColumn].items.push(taskData);
+      setColumns(newBoard); // Update the board with the new task
+    }
   };
+
+  // Memoize onDragEnd function to optimize re-renders
+  const handleOnDragEnd = useCallback(
+    (result) => onDragEnd(result, columns, setColumns),
+    [columns] // Only recalculate if columns change
+  );
 
   return (
     <>
-      <DragDropContext onDragEnd={(result) => onDragEnd(result, columns, setColumns)}>
-        <div className="w-full flex items-start justify-between px-5 pb-8 md:gap-0 gap-10">
+      <DragDropContext onDragEnd={handleOnDragEnd}>
+        <div className="w-full flex items-start justify-between px-5 pb-8 gap-8">
           {Object.entries(columns).map(([columnId, column]) => (
-            <div className="w-full flex flex-col gap-0" key={columnId}>
+            <div key={columnId} className="w-full flex flex-col gap-4">
               <Droppable droppableId={columnId}>
                 {(provided) => (
                   <div
@@ -46,10 +56,7 @@ const Home = () => {
                     {column.items.map((task, index) => (
                       <Draggable key={task.id.toString()} draggableId={task.id.toString()} index={index}>
                         {(provided) => (
-                          <Task
-                            provided={provided}
-                            task={task}
-                          />
+                          <Task provided={provided} task={task} />
                         )}
                       </Draggable>
                     ))}
@@ -61,7 +68,7 @@ const Home = () => {
                 onClick={() => openModal(columnId)}
                 className="flex cursor-pointer items-center justify-center gap-1 py-[10px] md:w-[90%] w-full opacity-90 bg-white rounded-lg shadow-sm text-[#555] font-medium text-[15px]"
               >
-                <AddOutline color={"#555"} />
+                <AddOutline color="#555" />
                 Add Task
               </div>
             </div>
